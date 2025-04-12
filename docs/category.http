@@ -1,0 +1,13 @@
+### Create a new Category
+POST http://localhost:8081/api/v1/categories
+Content-Type: application/json
+
+{
+  "name": "Miscellaneous"
+}
+
+### Find all categories
+GET http://localhost:8081/api/v1/categories
+
+### Find category by ID
+GET http://localhost:8081/api/v1/categories/67fac9cc8fc1d409fddf1320
