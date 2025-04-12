@@ -1,0 +1,12 @@
+app:
+  name: "e-product-service"
+  version: "0.0.1"
+  environment: "debug"
+
+database:
+  host: "localhost"
+  port: "27017"
+  name: "e-product-db"
+
+server:
+  port: ":8081"
