@@ -10,4 +10,4 @@ Content-Type: application/json
 GET http://localhost:8081/api/v1/categories
 
 ### Find category by ID
-GET http://localhost:8081/api/v1/categories/67fac9cc8fc1d409fddf1320
+GET http://localhost:8081/api/v1/categories/67fac9a48fc1d409fddf131c

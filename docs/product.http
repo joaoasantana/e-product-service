@@ -1,0 +1,14 @@
+### Create a new product
+POST http://localhost:8081/api/v1/products
+Content-Type: application/json
+
+{
+  "name": "Ergonomic Metal Keyboard",
+  "category_id": "67fac9a48fc1d409fddf131c"
+}
+
+### Find all products
+GET http://localhost:8081/api/v1/products
+
+### Find product by ID
+GET http://localhost:8081/api/v1/products/67fadaf73fb280699d8bf3fd
