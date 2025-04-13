@@ -1,4 +1,4 @@
-package category
+package store
 
 import (
 	"context"
@@ -9,25 +9,21 @@ import (
 	"time"
 )
 
-const (
-	collectionName = "categories"
-)
-
-type MongoRepository struct {
+type MongoCategoryRepository struct {
 	collection *mongo.Collection
 }
 
-func NewMongoRepository(db *mongo.Database) *MongoRepository {
-	return &MongoRepository{
-		collection: db.Collection(collectionName),
+func NewMongoCategoryRepository(db *mongo.Database) *MongoCategoryRepository {
+	return &MongoCategoryRepository{
+		collection: db.Collection("categories"),
 	}
 }
 
-func (r *MongoRepository) Create(entity *category.Entity) (string, error) {
+func (r *MongoCategoryRepository) Create(entity *category.Entity) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	model := MongoModel{
+	model := MongoCategory{
 		Name:      entity.Name,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -46,7 +42,7 @@ func (r *MongoRepository) Create(entity *category.Entity) (string, error) {
 	return objectID.Hex(), nil
 }
 
-func (r *MongoRepository) FindAll() ([]category.Entity, error) {
+func (r *MongoCategoryRepository) FindAll() ([]category.Entity, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -55,7 +51,7 @@ func (r *MongoRepository) FindAll() ([]category.Entity, error) {
 		return nil, err
 	}
 
-	var models []MongoModel
+	var models []MongoCategory
 
 	if err = cursor.All(ctx, &models); err != nil {
 		return nil, err
@@ -73,7 +69,7 @@ func (r *MongoRepository) FindAll() ([]category.Entity, error) {
 	return entities, nil
 }
 
-func (r *MongoRepository) FindByID(id string) (*category.Entity, error) {
+func (r *MongoCategoryRepository) FindByID(id string) (*category.Entity, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -87,7 +83,7 @@ func (r *MongoRepository) FindByID(id string) (*category.Entity, error) {
 		return nil, result.Err()
 	}
 
-	var model MongoModel
+	var model MongoCategory
 
 	if err = result.Decode(&model); err != nil {
 		return nil, err
@@ -101,7 +97,7 @@ func (r *MongoRepository) FindByID(id string) (*category.Entity, error) {
 	return entity, nil
 }
 
-func (r *MongoRepository) FindByName(name string) (*category.Entity, error) {
+func (r *MongoCategoryRepository) FindByName(name string) (*category.Entity, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -110,7 +106,7 @@ func (r *MongoRepository) FindByName(name string) (*category.Entity, error) {
 		return nil, result.Err()
 	}
 
-	var model MongoModel
+	var model MongoCategory
 
 	if err := result.Decode(&model); err != nil {
 		return nil, err
