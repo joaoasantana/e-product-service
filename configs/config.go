@@ -12,10 +12,10 @@ type Config struct {
 }
 
 func LoadNewConfig() *Config {
-	viper.AddConfigPath("./env")
+	viper.AddConfigPath("./configs")
 	viper.AutomaticEnv()
 
-	viper.SetConfigName("config.debug")
+	viper.SetConfigName("debug")
 	viper.SetConfigType("yaml")
 
 	if err := viper.ReadInConfig(); err != nil {
