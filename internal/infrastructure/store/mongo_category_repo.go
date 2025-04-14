@@ -2,8 +2,7 @@ package store
 
 import (
 	"context"
-	"errors"
-	"github.com/joaoasantana/e-product-service/internal/v1/domain/core/category"
+	"github.com/joaoasantana/e-product-service/internal/domain/entity"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"time"
@@ -13,36 +12,38 @@ type MongoCategoryRepository struct {
 	collection *mongo.Collection
 }
 
-func NewMongoCategoryRepository(db *mongo.Database) *MongoCategoryRepository {
+func NewMongoCategoryRepository(mongoDatabase *mongo.Database) *MongoCategoryRepository {
 	return &MongoCategoryRepository{
-		collection: db.Collection("categories"),
+		collection: mongoDatabase.Collection("categories"),
 	}
 }
 
-func (r *MongoCategoryRepository) Create(entity *category.Entity) (string, error) {
+type MongoCategory struct {
+	ID        bson.ObjectID `bson:"_id,omitempty"`
+	Name      string        `bson:"name"`
+	CreatedAt time.Time     `bson:"created_at"`
+	UpdatedAt time.Time     `bson:"updated_at"`
+}
+
+func (r *MongoCategoryRepository) Create(category *entity.Category) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	model := MongoCategory{
-		Name:      entity.Name,
+		Name:      category.Name,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
 
-	result, err := r.collection.InsertOne(ctx, model)
+	_, err := r.collection.InsertOne(ctx, model)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	objectID, ok := result.InsertedID.(bson.ObjectID)
-	if !ok {
-		return "", errors.ErrUnsupported
-	}
-
-	return objectID.Hex(), nil
+	return nil
 }
 
-func (r *MongoCategoryRepository) FindAll() ([]category.Entity, error) {
+func (r *MongoCategoryRepository) FindAll() ([]entity.Category, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -52,15 +53,13 @@ func (r *MongoCategoryRepository) FindAll() ([]category.Entity, error) {
 	}
 
 	var models []MongoCategory
-
 	if err = cursor.All(ctx, &models); err != nil {
 		return nil, err
 	}
 
-	var entities []category.Entity
-
+	var entities []entity.Category
 	for _, model := range models {
-		entities = append(entities, category.Entity{
+		entities = append(entities, entity.Category{
 			ID:   model.ID.Hex(),
 			Name: model.Name,
 		})
@@ -69,7 +68,7 @@ func (r *MongoCategoryRepository) FindAll() ([]category.Entity, error) {
 	return entities, nil
 }
 
-func (r *MongoCategoryRepository) FindByID(id string) (*category.Entity, error) {
+func (r *MongoCategoryRepository) FindById(id string) (*entity.Category, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -84,38 +83,23 @@ func (r *MongoCategoryRepository) FindByID(id string) (*category.Entity, error) 
 	}
 
 	var model MongoCategory
-
 	if err = result.Decode(&model); err != nil {
 		return nil, err
 	}
 
-	entity := &category.Entity{
+	category := &entity.Category{
 		ID:   model.ID.Hex(),
 		Name: model.Name,
 	}
 
-	return entity, nil
+	return category, nil
 }
 
-func (r *MongoCategoryRepository) FindByName(name string) (*category.Entity, error) {
+func (r *MongoCategoryRepository) Validate(name string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	result := r.collection.FindOne(ctx, bson.M{"name": name})
-	if result.Err() != nil {
-		return nil, result.Err()
-	}
 
-	var model MongoCategory
-
-	if err := result.Decode(&model); err != nil {
-		return nil, err
-	}
-
-	entity := &category.Entity{
-		ID:   model.ID.Hex(),
-		Name: model.Name,
-	}
-
-	return entity, nil
+	return result.Err()
 }

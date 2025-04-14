@@ -2,40 +2,31 @@ package main
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
-	"github.com/joaoasantana/e-product-service/configs"
-	"github.com/joaoasantana/e-product-service/internal/v1/api/http/category"
-	"github.com/joaoasantana/e-product-service/internal/v1/api/http/product"
-	"github.com/joaoasantana/e-product-service/pkg/util/connect"
-	"go.mongodb.org/mongo-driver/v2/mongo"
+	"github.com/joaoasantana/e-product-service/app"
+	"github.com/joaoasantana/e-product-service/internal/presentation/http/router"
 	"time"
 )
 
 func main() {
-	config := configs.LoadNewConfig()
+	startup := app.NewStartup(app.LoadAppConfig())
+	defer closeConnections(startup)
 
-	mongoDatabase := connect.MongoDatabase(config.Database)
-	defer disconnectMongoDatabase(mongoDatabase)
+	router.NewCategoryRouter(startup)
+	router.NewProductRouter(startup)
 
-	apiServer := gin.Default()
-
-	group := apiServer.Group("/api/v1")
-	{
-		category.NewRouter(group, mongoDatabase)
-		product.NewRouter(group, mongoDatabase)
-	}
-
-	if err := apiServer.Run(config.Server.Port); err != nil {
-		disconnectMongoDatabase(mongoDatabase)
+	if err := startup.Router.Run(startup.Config.Server.Port); err != nil {
 		panic(err)
 	}
 }
 
-func disconnectMongoDatabase(database *mongo.Database) {
+func closeConnections(startup *app.Startup) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := database.Client().Disconnect(ctx); err != nil {
+	if err := startup.DBClient.Disconnect(ctx); err != nil {
+		panic(err)
+	}
+	if err := startup.ZapLogger.Sync(); err != nil {
 		panic(err)
 	}
 }

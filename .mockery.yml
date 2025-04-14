@@ -1,18 +1,11 @@
 template: testify
 packages:
-  github.com/joaoasantana/e-product-service/internal/v1/domain/core/category:
+  github.com/joaoasantana/e-product-service/internal/domain/repository:
     config:
       dir: "./mocks"
-      filename: "category_repository.go"
+      filename: "{{.SrcPackageName}}_mock.go"
       pkgname: "test"
-      structname: "MockCategory{{.InterfaceName}}"
+      structname: "Mock{{.InterfaceName}}"
     interfaces:
-      Repository:
-  github.com/joaoasantana/e-product-service/internal/v1/domain/core/product:
-    config:
-      dir: "./mocks"
-      filename: "product_repository.go"
-      pkgname: "test"
-      structname: "MockProduct{{.InterfaceName}}"
-    interfaces:
-      Repository:
+      CategoryRepository:
+      ProductRepository:
