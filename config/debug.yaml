@@ -9,4 +9,5 @@ database:
   name: "e-product-db"
 
 server:
+  baseURL: "/api/v1"
   port: ":8081"

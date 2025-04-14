@@ -1,24 +1,25 @@
-package category
+package handler
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/joaoasantana/e-product-service/internal/v1/domain/app/category"
+	"github.com/joaoasantana/e-product-service/internal/application/model"
+	"github.com/joaoasantana/e-product-service/internal/application/service"
 	"github.com/joaoasantana/e-product-service/pkg/util/response"
 	"net/http"
 )
 
-type handler struct {
-	categoryService *category.Service
+type ProductHandler struct {
+	productService *service.ProductService
 }
 
-func newHandler(categoryService *category.Service) *handler {
-	return &handler{
-		categoryService: categoryService,
+func NewProductHandler(productService *service.ProductService) *ProductHandler {
+	return &ProductHandler{
+		productService: productService,
 	}
 }
 
-func (h *handler) createCategory(ctx *gin.Context) {
-	var requestBody category.Input
+func (h *ProductHandler) Create(ctx *gin.Context) {
+	var requestBody model.ProductInput
 
 	if err := ctx.ShouldBindJSON(&requestBody); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response.Failure{
@@ -26,13 +27,12 @@ func (h *handler) createCategory(ctx *gin.Context) {
 				Code:    http.StatusBadRequest,
 				Message: http.StatusText(http.StatusBadRequest),
 			},
-			Error: err.Error(),
+			Error: "Invalid request body",
 		})
 		return
 	}
 
-	id, err := h.categoryService.Create(&requestBody)
-	if err != nil {
+	if err := h.productService.Create(&requestBody); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, response.Failure{
 			Status: response.Status{
 				Code:    http.StatusInternalServerError,
@@ -48,12 +48,12 @@ func (h *handler) createCategory(ctx *gin.Context) {
 			Code:    http.StatusCreated,
 			Message: http.StatusText(http.StatusCreated),
 		},
-		Data: id,
+		Data: "Product created",
 	})
 }
 
-func (h *handler) findAllCategories(ctx *gin.Context) {
-	outputs, err := h.categoryService.FindAll()
+func (h *ProductHandler) FindAll(ctx *gin.Context) {
+	products, err := h.productService.FindAll()
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusNotFound, response.Failure{
 			Status: response.Status{
@@ -70,12 +70,12 @@ func (h *handler) findAllCategories(ctx *gin.Context) {
 			Code:    http.StatusOK,
 			Message: http.StatusText(http.StatusOK),
 		},
-		Data: outputs,
+		Data: products,
 	})
 }
 
-func (h *handler) findCategoryByID(ctx *gin.Context) {
-	output, err := h.categoryService.FindByID(ctx.Param("id"))
+func (h *ProductHandler) FindByID(ctx *gin.Context) {
+	product, err := h.productService.FindByID(ctx.Param("id"))
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusNotFound, response.Failure{
 			Status: response.Status{
@@ -92,6 +92,6 @@ func (h *handler) findCategoryByID(ctx *gin.Context) {
 			Code:    http.StatusOK,
 			Message: http.StatusText(http.StatusOK),
 		},
-		Data: output,
+		Data: product,
 	})
 }

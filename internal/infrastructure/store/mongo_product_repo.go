@@ -2,8 +2,7 @@ package store
 
 import (
 	"context"
-	"errors"
-	"github.com/joaoasantana/e-product-service/internal/v1/domain/core/product"
+	"github.com/joaoasantana/e-product-service/internal/domain/entity"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"time"
@@ -13,59 +12,63 @@ type MongoProductRepository struct {
 	collection *mongo.Collection
 }
 
-func NewMongoProductRepository(db *mongo.Database) *MongoProductRepository {
+func NewMongoProductRepository(database *mongo.Database) *MongoProductRepository {
 	return &MongoProductRepository{
-		collection: db.Collection("products"),
+		collection: database.Collection("products"),
 	}
 }
 
-func (r *MongoProductRepository) Create(entity *product.Entity) (string, error) {
+type MongoProduct struct {
+	ID          bson.ObjectID `bson:"_id,omitempty"`
+	Name        string        `bson:"name"`
+	Description string        `bson:"description,omitempty"`
+	CategoryID  bson.ObjectID `bson:"category_id"`
+	CreatedAt   time.Time     `bson:"created_at"`
+	UpdatedAt   time.Time     `bson:"updated_at"`
+}
+
+func (r *MongoProductRepository) Create(product *entity.Product) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	parsedID, err := bson.ObjectIDFromHex(entity.CategoryID)
+	categoryID, err := bson.ObjectIDFromHex(product.CategoryID)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	model := MongoProduct{
-		Name:        entity.Name,
-		Description: entity.Description,
-		CategoryID:  parsedID,
+		Name:        product.Name,
+		Description: product.Description,
+		CategoryID:  categoryID,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 
-	result, err := r.collection.InsertOne(ctx, model)
+	_, err = r.collection.InsertOne(ctx, model)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	objectID, ok := result.InsertedID.(bson.ObjectID)
-	if !ok {
-		return "", errors.ErrUnsupported
-	}
-
-	return objectID.Hex(), nil
+	return nil
 }
 
-func (r *MongoProductRepository) FindAll() ([]product.Entity, error) {
+func (r *MongoProductRepository) FindAll() ([]entity.Product, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	results, err := r.collection.Find(ctx, bson.M{})
+	cursor, err := r.collection.Find(ctx, bson.D{})
 	if err != nil {
 		return nil, err
 	}
 
 	var models []MongoProduct
-
-	if err = results.All(ctx, &models); err != nil {
+	if err = cursor.All(ctx, &models); err != nil {
 		return nil, err
 	}
 
-	var entities []product.Entity
-
+	var entities []entity.Product
 	for _, model := range models {
-		entities = append(entities, product.Entity{
+		entities = append(entities, entity.Product{
 			ID:          model.ID.Hex(),
 			Name:        model.Name,
 			Description: model.Description,
@@ -76,7 +79,7 @@ func (r *MongoProductRepository) FindAll() ([]product.Entity, error) {
 	return entities, nil
 }
 
-func (r *MongoProductRepository) FindByID(id string) (*product.Entity, error) {
+func (r *MongoProductRepository) FindById(id string) (*entity.Product, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -91,42 +94,25 @@ func (r *MongoProductRepository) FindByID(id string) (*product.Entity, error) {
 	}
 
 	var model MongoProduct
-
 	if err = result.Decode(&model); err != nil {
 		return nil, err
 	}
 
-	entity := &product.Entity{
+	category := &entity.Product{
 		ID:          model.ID.Hex(),
 		Name:        model.Name,
 		Description: model.Description,
 		CategoryID:  model.CategoryID.Hex(),
 	}
 
-	return entity, nil
+	return category, nil
 }
 
-func (r *MongoProductRepository) FindByName(name string) (*product.Entity, error) {
+func (r *MongoProductRepository) Validate(name string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	result := r.collection.FindOne(ctx, bson.M{"name": name})
-	if result.Err() != nil {
-		return nil, result.Err()
-	}
 
-	var model MongoProduct
-
-	if err := result.Decode(&model); err != nil {
-		return nil, err
-	}
-
-	entity := &product.Entity{
-		ID:          model.ID.Hex(),
-		Name:        model.Name,
-		Description: model.Description,
-		CategoryID:  model.CategoryID.Hex(),
-	}
-
-	return entity, nil
+	return result.Err()
 }
